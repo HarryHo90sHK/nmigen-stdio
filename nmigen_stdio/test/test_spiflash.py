@@ -106,6 +106,7 @@ class SPIFlashFastReadTestCase(unittest.TestCase):
         self.dut = SPIFlashFastReader(protocol="standard",
                                       addr_width=24,
                                       data_width=32,
+                                      granularity=8,
                                       divisor=self.divisor,
                                       dummy_cycles=15)
         self.flash = (SPIFlashFastReadTestCase.
@@ -120,6 +121,7 @@ class SPIFlashFastReadTestCase(unittest.TestCase):
         self.dut = SPIFlashFastReader(protocol="dual",
                                       addr_width=24,
                                       data_width=32,
+                                      granularity=8,
                                       divisor=self.divisor,
                                       dummy_cycles=15)
         self.flash = (SPIFlashFastReadTestCase.
@@ -134,6 +136,7 @@ class SPIFlashFastReadTestCase(unittest.TestCase):
         self.dut = SPIFlashFastReader(protocol="quad",
                                       addr_width=24,
                                       data_width=32,
+                                      granularity=8,
                                       divisor=self.divisor,
                                       dummy_cycles=15)
         self.flash = (SPIFlashFastReadTestCase.
