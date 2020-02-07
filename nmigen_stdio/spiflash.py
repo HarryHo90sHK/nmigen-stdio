@@ -194,6 +194,10 @@ class _SPIFlashReaderBase:
                 self.dq.oe.eq(self.dq_oe)
             ]
 
+        # r_rdy is asserted for only 1 clock cycle
+        with module.If(self.r_rdy):
+            module.d.sync += self.r_rdy.eq(0)
+
 
 class SPIFlashSlowReader(_SPIFlashReaderBase, Elaboratable):
     """An SPI flash controller module for normal reading
@@ -268,35 +272,33 @@ class SPIFlashSlowReader(_SPIFlashReaderBase, Elaboratable):
             # State: Address, MOSI
             with m.State("SLOWREAD-ADDR"):
                 with m.If((state_counter == state_durations["SLOWREAD-ADDR"] - 1) &
-                          self.clk_negedge_next):
+                          self.clk_posedge_next):
                     m.d.sync += state_counter.eq(0)
                     if self._protocol in ["dual", "quad"]:
                         m.d.sync += self.dq_oe.eq(0)
                     m.next = "SLOWREAD-READ"
                 with m.Elif(self.clk_negedge_next):
                     m.d.sync += state_counter.eq(state_counter + 1)
-            # State: Dummy cycles (waiting), and then Read (MISO)
+            # State: Read, MISO
             with m.State("SLOWREAD-READ"):
                 with m.If((state_counter == state_durations["SLOWREAD-READ"] - 1) &
-                          self.clk_negedge_next):
-                    m.d.sync += [
-                        state_counter.eq(0),
-                        self.r_rdy.eq(1)
-                    ]
+                          self.clk_posedge_next):
+                    m.d.sync += state_counter.eq(0)
                     if self._protocol in ["dual", "quad"]:
                         m.d.sync += self.dq_oe.eq(0)
                     m.next = "SLOWREAD-RDYWAIT"
-                with m.Elif(self.clk_negedge_next):
+                with m.Elif(self.clk_posedge_next):
                     m.d.sync += state_counter.eq(state_counter + 1)
             # State: Send r_rdy (for 1 clock period), and then Wait
             with m.State("SLOWREAD-RDYWAIT"):
-                m.d.sync += self.r_rdy.eq(0)
+                with m.If((state_counter == 0) & self.clk_negedge_next):
+                    m.d.sync += self.r_rdy.eq(1)
                 # Early check to skip 1 clock period of doing nothing
                 with m.If((state_counter == state_durations["SLOWREAD-RDYWAIT"] - 1) &
                           self.clk_posedge_next):
                     m.d.sync += self.cs.eq(0)
                     m.next = "SLOWREAD-IDLE"
-                with m.Elif(self.clk_negedge_next):
+                with m.Elif(self.clk_posedge_next):
                     m.d.sync += state_counter.eq(state_counter + 1)
 
         return m
@@ -376,7 +378,7 @@ class SPIFlashFastReader(_SPIFlashReaderBase, Elaboratable):
             # State: Address, MOSI
             with m.State("FASTREAD-ADDR"):
                 with m.If((state_counter == state_durations["FASTREAD-ADDR"] - 1) &
-                          self.clk_negedge_next):
+                          self.clk_posedge_next):
                     m.d.sync += state_counter.eq(0)
                     if self._protocol in ["dual", "quad"]:
                         m.d.sync += self.dq_oe.eq(0)
@@ -386,25 +388,23 @@ class SPIFlashFastReader(_SPIFlashReaderBase, Elaboratable):
             # State: Dummy cycles (waiting), and then Read (MISO)
             with m.State("FASTREAD-WAITREAD"):
                 with m.If((state_counter == state_durations["FASTREAD-WAITREAD"] - 1) &
-                          self.clk_negedge_next):
-                    m.d.sync += [
-                        state_counter.eq(0),
-                        self.r_rdy.eq(1)
-                    ]
+                          self.clk_posedge_next):
+                    m.d.sync += state_counter.eq(0)
                     if self._protocol in ["dual", "quad"]:
                         m.d.sync += self.dq_oe.eq(0)
                     m.next = "FASTREAD-RDYWAIT"
-                with m.Elif(self.clk_negedge_next):
+                with m.Elif(self.clk_posedge_next):
                     m.d.sync += state_counter.eq(state_counter + 1)
             # State: Send r_rdy (for 1 clock period), and then Wait
             with m.State("FASTREAD-RDYWAIT"):
-                m.d.sync += self.r_rdy.eq(0)
+                with m.If((state_counter == 0) & self.clk_negedge_next):
+                    m.d.sync += self.r_rdy.eq(1)
                 # Early check to skip 1 clock period of doing nothing
                 with m.If((state_counter == state_durations["FASTREAD-RDYWAIT"] - 1) &
                           self.clk_posedge_next):
                     m.d.sync += self.cs.eq(0)
                     m.next = "FASTREAD-IDLE"
-                with m.Elif(self.clk_negedge_next):
+                with m.Elif(self.clk_posedge_next):
                     m.d.sync += state_counter.eq(state_counter + 1)
 
         return m

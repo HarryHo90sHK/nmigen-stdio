@@ -152,6 +152,7 @@ class SPIFlashFastReadTestCase(unittest.TestCase):
         m.submodules.slave  = self.flash
 
         def process():
+            yield self.dut.addr.eq(0x123456 >> 2)
             yield self.dut.ack.eq(1)
             while (yield self.dut.rdy):
                 yield       # Wait until it enters CMD state
